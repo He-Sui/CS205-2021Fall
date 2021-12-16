@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.1)
+project(face_detect)
+find_package (OpenCV REQUIRED)
+add_definitions(-DWITH_Open_BLAS)
+link_libraries(/usr/lib/x86_64-linux-gnu/libopenblas.so)
+add_executable(face_detect main.cpp CNN.cpp matrix.cpp)
+include_directories(${OpenCV_INCLUDE_DIRS})
+target_link_libraries(face_detect ${OpenCV_LIBS})
