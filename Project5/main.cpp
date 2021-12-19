@@ -15,9 +15,13 @@ int main()
         }
         catch (cv::Exception)
         {
-            cout << "Invalid image path!" << endl;
+            cerr << "Invalid image path!" << endl;
         }
-        cout << "Enter 'y' to detect another image, 'q' to exit!";
+        catch (const char msg)
+        {
+            cerr << msg << endl;
+        }
+        cout << "Enter 'y' to detect another image, 'q' to exit! ";
         cin >> c;
         if (c != 'y')
             break;
