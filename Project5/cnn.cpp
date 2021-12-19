@@ -61,20 +61,19 @@ Matrix<float> readImag(string &fileName)
 Matrix<float> ConvBNRelu_BruteForce(Matrix<float> &matrix, conv_param &param)
 {
     if (matrix.channel != param.in_channels)
-    {
-        cerr << "Can not conv!" << endl;
-        return Matrix<float>();
-    }
+        throw "Invalid conv_param!";
     Matrix<float> output((matrix.rows - param.kernel_size + 2 * param.pad + param.stride) / param.stride, (matrix.cols - param.kernel_size + 2 * param.pad + param.stride) / param.stride, param.out_channels);
     size_t outChannel = output.channel;
     size_t outRow = output.rows;
     size_t outCol = output.cols;
+    size_t size = matrix.rows * matrix.cols;
+    size_t weight_size = param.kernel_size * param.kernel_size;
+    float *weight_ptr;
     float *out_ptr = output.data;
-    float *weight_ptr[param.in_channels];
+    float *in_ptr;
     for (size_t channel = 0; channel < outChannel; ++channel)
     {
-        for (size_t counter = 0; counter < param.in_channels; ++counter)
-            weight_ptr[counter] = param.p_weight + (channel * param.in_channels + counter) * param.kernel_size * param.kernel_size;
+        weight_ptr = param.p_weight + (channel * param.in_channels) * weight_size;
         long long row_index = -param.pad;
         long long col_index = -param.pad;
         for (size_t row = 0; row < outRow; ++row)
@@ -86,11 +85,18 @@ Matrix<float> ConvBNRelu_BruteForce(Matrix<float> &matrix, conv_param &param)
                     for (size_t j = 0; j < param.kernel_size; ++j)
                     {
                         if (row_index >= 0 && row_index < matrix.rows && col_index >= 0 && col_index < matrix.cols)
+                        {
+                            in_ptr = matrix.data + row_index * matrix.cols + col_index;
                             for (size_t counter = 0; counter < param.in_channels; ++counter)
-                                *out_ptr += *(weight_ptr[counter]) * matrix(row_index, col_index, counter);
+                            {
+                                *out_ptr += *weight_ptr * *in_ptr;
+                                in_ptr += size;
+                                weight_ptr += weight_size;
+                            }
+                            weight_ptr -= param.in_channels * weight_size;
+                        }
                         ++col_index;
-                        for (size_t counter = 0; counter < param.in_channels; ++counter)
-                            ++weight_ptr[counter];
+                        ++weight_ptr;
                     }
                     ++row_index;
                     col_index -= param.kernel_size;
@@ -100,8 +106,7 @@ Matrix<float> ConvBNRelu_BruteForce(Matrix<float> &matrix, conv_param &param)
                 col_index += param.stride;
                 row_index -= param.kernel_size;
                 ++out_ptr;
-                for (size_t counter = 0; counter < param.in_channels; ++counter)
-                    weight_ptr[counter] -= param.kernel_size * param.kernel_size;
+                weight_ptr -= weight_size;
             }
             row_index += param.stride;
             col_index = -param.pad;
@@ -162,10 +167,7 @@ Matrix<float> im2col(Matrix<float> &im, int pad, int stride, int kernel_size, in
 Matrix<float> ConvBNRelu(Matrix<float> &matrix, conv_param &param)
 {
     if (matrix.channel != param.in_channels)
-    {
-        cerr << "Can not conv!" << endl;
-        return Matrix<float>();
-    }
+        throw "Invalid conv_param!";
     Matrix<float> im2col_matrix = im2col(matrix, param.pad, param.stride, param.kernel_size, param.in_channels);
     Matrix<float> param_matrix(param.p_weight, param.out_channels, param.kernel_size * param.kernel_size * param.in_channels);
 #ifndef WITH_Open_BLAS
@@ -225,10 +227,7 @@ Matrix<float> full_connected(Matrix<float> &input, fc_param &param)
 {
     size_t total = input.channel * input.rows * input.cols;
     if (total != param.in_features)
-    {
-        cerr << "Can not implement full connected!" << endl;
-        return Matrix<float>();
-    }
+        throw "Invalid fc_param!";
     input.resize(total, 1);
     Matrix<float> weight(param.p_weight, param.out_features, param.in_features);
     Matrix<float> bias(param.p_bias, param.out_features, 1);
