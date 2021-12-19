@@ -1,4 +1,5 @@
 #pragma once
+#pragma GCC optimize(3, "Ofast", "inline")
 #include "matrix.hpp"
 #ifdef WITH_Open_BLAS
 #include <cblas.h>
